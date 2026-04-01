@@ -41,6 +41,7 @@ const CAT_COLORS = { Work: "#378ADD", Study: "#7F77DD", Health: "#1D9E75", Perso
 const CAT_BG = { Work: "#E6F1FB", Study: "#EEEDFE", Health: "#E1F5EE", Personal: "#FBEAF0" };
 const CAT_TEXT = { Work: "#0C447C", Study: "#3C3489", Health: "#085041", Personal: "#72243E" };
 const STATUS_BG = { "Not Started": "#F1EFE8", "In Progress": "#E6F1FB", "Completed": "#E1F5EE" };
+const BASE_URL = "http://localhost:5000";
 const STATUS_TEXT = { "Not Started": "#5F5E5A", "In Progress": "#0C447C", "Completed": "#085041" };
 
 const now = new Date();
@@ -354,7 +355,7 @@ function GoalCard({ goal, onEdit, onDelete, onToggleComplete, onToggleSubtask, o
 export default function SmartPlannerPro() {
   const [view, setView] = useState("planner");
   const [goalTab, setGoalTab] = useState("1month");
-  const [tasks, setTasks] = useState(SAMPLE_TASKS);
+  const [tasks, setTasks] = useState([]);
   const [goals, setGoals] = useState(SAMPLE_GOALS);
   const [habits, setHabits] = useState(DEFAULT_HABITS);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -398,6 +399,30 @@ export default function SmartPlannerPro() {
     const interval = setInterval(loadQuote, 3600000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const res = await axios.get(`${BASE_URL}/api/tasks`, {
+          headers: { Authorization: token }
+        });
+
+        setTasks(res.data.map(task => ({
+          ...task,
+          id: task._id || task.id,
+          timeSpent: task.timeSpent || 0,
+          running: false
+        })));
+      } catch (err) {
+        console.error("Failed to fetch tasks:", err);
+      }
+    };
+
+    fetchTasks();
+  }, [user]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -463,7 +488,35 @@ export default function SmartPlannerPro() {
   function stopTimer(id) { setTasks(ts => ts.map(t => t.id === id ? { ...t, running: false } : t)); setFocusTask(null); }
   function toggleComplete(id) { setTasks(ts => ts.map(t => { if (t.id !== id) return t; const c = t.status === "Pending"; if (c) setXp(x => x + 50); return { ...t, status: c ? "Completed" : "Pending", running: false }; })); }
   function deleteTask(id) { setTasks(ts => ts.filter(t => t.id !== id)); }
-  function saveTask(form) { if (editTask) setTasks(ts => ts.map(t => t.id === editTask.id ? { ...t, ...form } : t)); else setTasks(ts => [...ts, { ...form, id: Date.now(), timeSpent: 0, running: false }]); setShowTaskModal(false); setEditTask(null); }
+  async function saveTask(form) {
+    if (editTask) {
+      setTasks(ts => ts.map(t => t.id === editTask.id ? { ...t, ...form } : t));
+    } else {
+      if (user) {
+        try {
+          const res = await axios.post(`${BASE_URL}/api/tasks`, form, {
+            headers: { Authorization: user }
+          });
+
+          const saved = res.data;
+          setTasks(ts => [...ts, {
+            ...saved,
+            id: saved._id || saved.id,
+            timeSpent: saved.timeSpent || 0,
+            running: false
+          }]);
+        } catch (err) {
+          console.error("Failed to create task:", err);
+          showToast("Unable to save task");
+        }
+      } else {
+        setTasks(ts => [...ts, { ...form, id: Date.now(), timeSpent: 0, running: false }]);
+      }
+    }
+
+    setShowTaskModal(false);
+    setEditTask(null);
+  }
   function saveGoal(form) { if (editGoal) setGoals(gs => gs.map(g => g.id === editGoal.id ? { ...g, ...form } : g)); else setGoals(gs => [...gs, { ...form, id: "g" + Date.now() }]); setShowGoalModal(false); setEditGoal(null); }
   function deleteGoal(id) { setGoals(gs => gs.filter(g => g.id !== id)); }
   function toggleGoalComplete(id) { setGoals(gs => gs.map(g => { if (g.id !== id) return g; const c = g.progressStatus !== "Completed"; if (c) setXp(x => x + 100); return { ...g, progressStatus: c ? "Completed" : g.subtasks.length ? "In Progress" : "Not Started", progress: c ? 100 : g.progress }; })); }
@@ -474,6 +527,7 @@ export default function SmartPlannerPro() {
 
   const focusTaskData = focusTask ? tasks.find(t => t.id === focusTask) : null;
   const navItems = [{ id: "planner", label: "Planner" }, { id: "goals", label: "Goals" }, { id: "habits", label: "Habits" }, { id: "analytics", label: "Analytics" }];
+  const isMobile = window.innerWidth < 768;
 
   const Btn = ({ children, onClick, style = {} }) => <button onClick={onClick} style={{ padding: "5px 10px", borderRadius: 7, border: "0.5px solid var(--color-border-secondary)", cursor: "pointer", fontSize: 11, fontWeight: 500, background: "transparent", color: "var(--color-text-secondary)", ...style }}>{children}</button>;
 
@@ -498,7 +552,8 @@ export default function SmartPlannerPro() {
       {(showGoalModal || editGoal) && <GoalModal goal={editGoal} type={goalTab} onSave={saveGoal} onClose={() => { setShowGoalModal(false); setEditGoal(null); }} />}
       {toast && <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "var(--color-text-primary)", color: "var(--color-background-primary)", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 2000, whiteSpace: "nowrap" }}>{toast}</div>}
 
-      <div style={{ background: "var(--color-background-primary)", borderBottom: "0.5px solid var(--color-border-tertiary)", padding: "0 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, position: "sticky", top: 0, zIndex: 100 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px" }}>
+      <div style={{ background: "var(--color-background-primary)", borderBottom: "0.5px solid var(--color-border-tertiary)", padding: "0 1.5rem", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: 12, height: isMobile ? "auto" : 52, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -523,7 +578,7 @@ export default function SmartPlannerPro() {
             Focus
           </span>
         </div>
-        <nav style={{ display: "flex", gap: 2 }}>
+        <nav style={{ display: "flex", gap: 2, flexWrap: isMobile ? "wrap" : "nowrap" }}>
           {navItems.map(n => (
             <button key={n.id} onClick={() => setView(n.id)} style={{ padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, background: view === n.id ? "var(--color-background-secondary)" : "transparent", color: view === n.id ? "var(--color-text-primary)" : "var(--color-text-secondary)", display: "flex", alignItems: "center", gap: 5 }}>
               {n.label}
@@ -533,9 +588,10 @@ export default function SmartPlannerPro() {
         </nav>
         <div style={{
           display: "flex",
-          alignItems: "center",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center",
           gap: 16,
-          maxWidth: "60%"
+          maxWidth: isMobile ? "100%" : "60%"
         }}>
 
           {/* ⭐ MOTIVATION STRIP */}
@@ -728,7 +784,7 @@ export default function SmartPlannerPro() {
             <div style={{ flex: 1, height: 6, background: "var(--color-background-secondary)", borderRadius: 4, overflow: "hidden" }}><div style={{ height: "100%", width: `${Math.min((xp / xpToNext) * 100, 100)}%`, background: "#7F77DD", borderRadius: 4, transition: "width 0.4s" }}></div></div>
             <span style={{ fontSize: 12, color: "var(--color-text-secondary)", minWidth: 80, textAlign: "right" }}>{xp} / {xpToNext} XP</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
             {sortedTasks.map(task => (
               <motion.div
                 key={task.id}
@@ -739,6 +795,8 @@ export default function SmartPlannerPro() {
                   background: "#FFFFFF",
                   borderRadius: 12,
                   padding: 16,
+                  width: "100%",
+                  maxWidth: 400,
                   borderLeft: `5px solid ${PRIORITY_COLORS[task.priority]}`,
                   boxShadow: task.running
                     ? "0 0 20px rgba(245,158,11,0.3)"
@@ -774,6 +832,9 @@ export default function SmartPlannerPro() {
             ))}
           </div>
         </>}
+
+      </div>
+      </div>
 
       {view === "goals" && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem", flexWrap: "wrap", gap: 8 }}>
@@ -958,8 +1019,8 @@ export default function SmartPlannerPro() {
         onClick={() => { if (view === "goals") { setEditGoal(null); setShowGoalModal(true); } else { setEditTask(null); setShowTaskModal(true); } }}
         style={{
           position: "fixed",
-          bottom: 24,
-          right: 24,
+          bottom: 20,
+          right: 20,
           width: 60,
           height: 60,
           borderRadius: "50%",
