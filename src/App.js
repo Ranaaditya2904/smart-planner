@@ -1011,7 +1011,6 @@ export default function SmartPlannerPro() {
           </div>
         </div>
       </>}
-    </div>
 
       {(view === "planner" || view === "goals") && (
         <button
