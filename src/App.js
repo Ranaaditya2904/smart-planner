@@ -1013,36 +1013,34 @@ export default function SmartPlannerPro() {
       </>}
     </div>
 
-      {
-    (view === "planner" || view === "goals") && (
-      <button
-        onClick={() => { if (view === "goals") { setEditGoal(null); setShowGoalModal(true); } else { setEditTask(null); setShowTaskModal(true); } }}
-        style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-          width: 60,
-          height: 60,
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
-          color: "white",
-          fontSize: 26,
-          border: "none",
-          cursor: "pointer",
-          boxShadow: "0 12px 30px rgba(99,102,241,0.4)",
-          transition: "all 0.2s",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        onMouseOver={e => (e.currentTarget.style.transform = "scale(1.1)")}
-        onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}
-      >
-        +
-      </button>
-    )
-  }
-  <style>{"@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}"}</style>
+      {(view === "planner" || view === "goals") && (
+        <button
+          onClick={() => { if (view === "goals") { setEditGoal(null); setShowGoalModal(true); } else { setEditTask(null); setShowTaskModal(true); } }}
+          style={{
+            position: "fixed",
+            bottom: 20,
+            right: 20,
+            width: 60,
+            height: 60,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+            color: "white",
+            fontSize: 26,
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 12px 30px rgba(99,102,241,0.4)",
+            transition: "all 0.2s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onMouseOver={e => (e.currentTarget.style.transform = "scale(1.1)")}
+          onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          +
+        </button>
+      )}
+      <style>{"@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}"}</style>
     </div >
   );
 }
