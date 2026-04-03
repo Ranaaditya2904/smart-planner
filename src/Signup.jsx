@@ -8,7 +8,7 @@ export default function Signup({ onSignup, goToLogin }) {
 const handleSignup = async () => {
   try {
     await axios.post(
-      "https://focus-backend-vj3r.onrender.com/api/auth/signup",
+      "http://localhost:5000/api/auth/signup",
       {
         email,
         password

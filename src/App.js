@@ -41,7 +41,7 @@ const CAT_COLORS = { Work: "#378ADD", Study: "#7F77DD", Health: "#1D9E75", Perso
 const CAT_BG = { Work: "#E6F1FB", Study: "#EEEDFE", Health: "#E1F5EE", Personal: "#FBEAF0" };
 const CAT_TEXT = { Work: "#0C447C", Study: "#3C3489", Health: "#085041", Personal: "#72243E" };
 const STATUS_BG = { "Not Started": "#F1EFE8", "In Progress": "#E6F1FB", "Completed": "#E1F5EE" };
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://focus-backend-vj3r.onrender.com";
 const STATUS_TEXT = { "Not Started": "#5F5E5A", "In Progress": "#0C447C", "Completed": "#085041" };
 
 const now = new Date();
