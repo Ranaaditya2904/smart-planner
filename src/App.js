@@ -451,7 +451,7 @@ export default function SmartPlannerPro() {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [tasks, notificationsEnabled, sendNotification]);
+  }, [notificationsEnabled, sendNotification]);
 
   useEffect(() => {
     const interval = setInterval(() => { setTime(new Date()); }, 1000);
