@@ -1,7 +1,7 @@
 import axios from "axios";
 import Login from "./Login";
 import Signup from "./Signup";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 
 const fetchAIQuote = async () => {
@@ -386,39 +386,42 @@ export default function SmartPlannerPro() {
         icon: "https://cdn-icons-png.flaticon.com/512/1827/1827392.png"
       });
     }
-  }, [notificationsEnabled]);
+  }, []); // Remove notificationsEnabled from dependencies to prevent re-creation
 
   useEffect(() => {
     const loadQuote = async () => {
-      const q = await fetchAIQuote();
-      setQuote(q);
+      // Temporarily disabled to prevent re-render loop
+      // const q = await fetchAIQuote();
+      // setQuote(q);
+      setQuote("Stay consistent and keep moving forward.");
     };
 
     loadQuote();
 
-    const interval = setInterval(loadQuote, 3600000);
-    return () => clearInterval(interval);
+    // const interval = setInterval(loadQuote, 3600000);
+    // return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     const fetchTasks = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      // Temporarily disabled to prevent re-render loop
+      // const token = localStorage.getItem("token");
+      // if (!token) return;
 
-      try {
-        const res = await axios.get(`${BASE_URL}/api/tasks`, {
-          headers: { Authorization: token }
-        });
+      // try {
+      //   const res = await axios.get(`${BASE_URL}/api/tasks`, {
+      //     headers: { Authorization: token }
+      //   });
 
-        setTasks(res.data.map(task => ({
-          ...task,
-          id: task._id || task.id,
-          timeSpent: task.timeSpent || 0,
-          running: false
-        })));
-      } catch (err) {
-        console.error("Failed to fetch tasks:", err);
-      }
+      //   setTasks(res.data.map(task => ({
+      //     ...task,
+      //     id: task._id || task.id,
+      //     timeSpent: task.timeSpent || 0,
+      //     running: false
+      //   })));
+      // } catch (err) {
+      //   console.error("Failed to fetch tasks:", err);
+      // }
     };
 
     fetchTasks();
@@ -458,37 +461,39 @@ export default function SmartPlannerPro() {
     return () => clearInterval(interval);
   }, []);
 
-  const formattedTime = time.toLocaleTimeString([], {
+  const formattedTime = useMemo(() => time.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit"
-  });
+  }), [time]);
 
   useEffect(() => {
     timerRef.current = setInterval(() => { setTasks(ts => ts.map(t => t.running ? { ...t, timeSpent: t.timeSpent + 1 } : t)); }, 1000);
     return () => clearInterval(timerRef.current);
   }, []);
 
-  function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2800); }
+  const showToastFn = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(null), 2800); }, []);
 
-  const totalTasks = tasks.length, completedTasks = tasks.filter(t => t.status === "Completed").length;
-  const pendingTasks = totalTasks - completedTasks, totalTimeSpent = tasks.reduce((a, t) => a + t.timeSpent, 0);
-  const productivityScore = Math.round((completedTasks / totalTasks) * 100);
-  const level = xp < 200 ? "Beginner" : xp < 500 ? "Intermediate" : "Pro";
-  const xpToNext = xp < 200 ? 200 : xp < 500 ? 500 : 1000;
-  const runningTask = tasks.find(t => t.running);
-  const sortedTasks = [...tasks].sort((a, b) => { const po = { High: 0, Medium: 1, Low: 2 }; return po[a.priority] - po[b.priority] || a.startTime.localeCompare(b.startTime); });
-  const goals1m = goals.filter(g => g.type === "1month");
-  const goals6m = goals.filter(g => g.type === "6month");
+  const totalTasks = useMemo(() => tasks.length, [tasks]);
+  const completedTasks = useMemo(() => tasks.filter(t => t.status === "Completed").length, [tasks]);
+  const pendingTasks = useMemo(() => totalTasks - completedTasks, [totalTasks, completedTasks]);
+  const totalTimeSpent = useMemo(() => tasks.reduce((a, t) => a + t.timeSpent, 0), [tasks]);
+  const productivityScore = useMemo(() => Math.round((completedTasks / totalTasks) * 100), [completedTasks, totalTasks]);
+  const level = useMemo(() => xp < 200 ? "Beginner" : xp < 500 ? "Intermediate" : "Pro", [xp]);
+  const xpToNext = useMemo(() => xp < 200 ? 200 : xp < 500 ? 500 : 1000, [xp]);
+  const runningTask = useMemo(() => tasks.find(t => t.running), [tasks]);
+  const sortedTasks = useMemo(() => [...tasks].sort((a, b) => { const po = { High: 0, Medium: 1, Low: 2 }; return po[a.priority] - po[b.priority] || a.startTime.localeCompare(b.startTime); }), [tasks]);
+  const goals1m = useMemo(() => goals.filter(g => g.type === "1month"), [goals]);
+  const goals6m = useMemo(() => goals.filter(g => g.type === "6month"), [goals]);
   const activeGoals = goalTab === "1month" ? goals1m : goals6m;
-  const overallProgress = gs => gs.length ? Math.round(gs.reduce((a, g) => a + g.progress, 0) / gs.length) : 0;
-  const highPriorityPending = tasks.filter(t => t.priority === "High" && t.status === "Pending").length;
+  const overallProgress = useMemo(() => gs => gs.length ? Math.round(gs.reduce((a, g) => a + g.progress, 0) / gs.length) : 0, []);
+  const highPriorityPending = useMemo(() => tasks.filter(t => t.priority === "High" && t.status === "Pending").length, [tasks]);
 
-  function toggleTimer(id) { setTasks(ts => ts.map(t => t.id !== id ? { ...t, running: false } : { ...t, running: !t.running })); }
-  function stopTimer(id) { setTasks(ts => ts.map(t => t.id === id ? { ...t, running: false } : t)); setFocusTask(null); }
-  function toggleComplete(id) { setTasks(ts => ts.map(t => { if (t.id !== id) return t; const c = t.status === "Pending"; if (c) setXp(x => x + 50); return { ...t, status: c ? "Completed" : "Pending", running: false }; })); }
-  function deleteTask(id) { setTasks(ts => ts.filter(t => t.id !== id)); }
-  async function saveTask(form) {
+  const toggleTimerFn = useCallback((id) => { setTasks(ts => ts.map(t => t.id !== id ? { ...t, running: false } : { ...t, running: !t.running })); }, []);
+  const stopTimerFn = useCallback((id) => { setTasks(ts => ts.map(t => t.id === id ? { ...t, running: false } : t)); setFocusTask(null); }, []);
+  const toggleCompleteFn = useCallback((id) => { setTasks(ts => ts.map(t => { if (t.id !== id) return t; const c = t.status === "Pending"; if (c) setXp(x => x + 50); return { ...t, status: c ? "Completed" : "Pending", running: false }; })); }, []);
+  const deleteTaskFn = useCallback((id) => { setTasks(ts => ts.filter(t => t.id !== id)); }, []);
+  const saveTaskFn = useCallback(async (form) => {
     if (editTask) {
       setTasks(ts => ts.map(t => t.id === editTask.id ? { ...t, ...form } : t));
     } else {
@@ -507,7 +512,7 @@ export default function SmartPlannerPro() {
           }]);
         } catch (err) {
           console.error("Failed to create task:", err);
-          showToast("Unable to save task");
+          showToastFn("Unable to save task");
         }
       } else {
         setTasks(ts => [...ts, { ...form, id: Date.now(), timeSpent: 0, running: false }]);
@@ -516,7 +521,7 @@ export default function SmartPlannerPro() {
 
     setShowTaskModal(false);
     setEditTask(null);
-  }
+  }, [editTask, user, BASE_URL, showToastFn]);
   function saveGoal(form) { if (editGoal) setGoals(gs => gs.map(g => g.id === editGoal.id ? { ...g, ...form } : g)); else setGoals(gs => [...gs, { ...form, id: "g" + Date.now() }]); setShowGoalModal(false); setEditGoal(null); }
   function deleteGoal(id) { setGoals(gs => gs.filter(g => g.id !== id)); }
   function toggleGoalComplete(id) { setGoals(gs => gs.map(g => { if (g.id !== id) return g; const c = g.progressStatus !== "Completed"; if (c) setXp(x => x + 100); return { ...g, progressStatus: c ? "Completed" : g.subtasks.length ? "In Progress" : "Not Started", progress: c ? 100 : g.progress }; })); }
@@ -548,7 +553,7 @@ export default function SmartPlannerPro() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-background-tertiary)", fontFamily: "var(--font-sans)", paddingBottom: "5rem" }}>
       {focusTaskData && <FocusMode task={focusTaskData} timeSpent={focusTaskData.timeSpent} running={focusTaskData.running} onToggle={() => toggleTimer(focusTask)} onStop={() => stopTimer(focusTask)} onExit={() => setFocusTask(null)} />}
-      {(showTaskModal || editTask) && <TaskModal task={editTask} onSave={saveTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
+      {(showTaskModal || editTask) && <TaskModal task={editTask} onSave={saveTaskFn} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
       {(showGoalModal || editGoal) && <GoalModal goal={editGoal} type={goalTab} onSave={saveGoal} onClose={() => { setShowGoalModal(false); setEditGoal(null); }} />}
       {toast && <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "var(--color-text-primary)", color: "var(--color-background-primary)", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 2000, whiteSpace: "nowrap" }}>{toast}</div>}
 
