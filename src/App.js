@@ -478,7 +478,10 @@ export default function SmartPlannerPro() {
   const completedTasks = useMemo(() => tasks.filter(t => t.status === "Completed").length, [tasks]);
   const pendingTasks = useMemo(() => totalTasks - completedTasks, [totalTasks, completedTasks]);
   const totalTimeSpent = useMemo(() => tasks.reduce((a, t) => a + t.timeSpent, 0), [tasks]);
-  const productivityScore = useMemo(() => Math.round((completedTasks / totalTasks) * 100), [completedTasks, totalTasks]);
+  const productivityScore = useMemo(() => {
+  return totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+}, [completedTasks, totalTasks]);
+
   const level = useMemo(() => xp < 200 ? "Beginner" : xp < 500 ? "Intermediate" : "Pro", [xp]);
   const xpToNext = useMemo(() => xp < 200 ? 200 : xp < 500 ? 500 : 1000, [xp]);
   const runningTask = useMemo(() => tasks.find(t => t.running), [tasks]);
@@ -532,7 +535,17 @@ export default function SmartPlannerPro() {
 
   const focusTaskData = focusTask ? tasks.find(t => t.id === focusTask) : null;
   const navItems = [{ id: "planner", label: "Planner" }, { id: "goals", label: "Goals" }, { id: "habits", label: "Habits" }, { id: "analytics", label: "Analytics" }];
-  const isMobile = window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+
+  window.addEventListener("resize", handleResize);
+
+  return () => window.removeEventListener("resize", handleResize);
+},  [notificationsEnabled]);
 
   const Btn = ({ children, onClick, style = {} }) => <button onClick={onClick} style={{ padding: "5px 10px", borderRadius: 7, border: "0.5px solid var(--color-border-secondary)", cursor: "pointer", fontSize: 11, fontWeight: 500, background: "transparent", color: "var(--color-text-secondary)", ...style }}>{children}</button>;
 
